@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://we-change.org/sitemap.xml

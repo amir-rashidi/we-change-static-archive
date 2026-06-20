@@ -52,7 +52,18 @@ for p in files:
         continue
     if rel in {"search.html"}:
         continue
-    if "backend" in rel:
+
+    name = Path(rel).name
+
+    # برای سرعت، فقط صفحه اصلی و صفحه‌های مقاله را index می‌کنیم.
+    # صفحه‌های rubrique، mot، print، backend و صفحات تکراری حذف می‌شوند.
+    is_home = rel in {"index.html", "english/index.html"}
+    is_article = name.startswith("spip.php?article") or name.startswith("spip.php%3Farticle")
+
+    if not (is_home or is_article):
+        continue
+
+    if "page=print" in rel or "page%3Dprint" in rel or "backend" in rel:
         continue
 
     raw = p.read_text(errors="ignore")

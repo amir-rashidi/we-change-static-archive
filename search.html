@@ -4,21 +4,55 @@
   <meta charset="utf-8">
   <title>جستجو در آرشیو تغییر برای برابری</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="pagefind/pagefind-ui.css" rel="stylesheet">
-  <script src="pagefind/pagefind-ui.js"></script>
   <style>
     body {
       font-family: Tahoma, Arial, sans-serif;
-      max-width: 900px;
+      max-width: 950px;
       margin: 40px auto;
       padding: 0 20px;
       direction: rtl;
       text-align: right;
       line-height: 1.8;
+      background: #fff;
+      color: #222;
     }
-    a { color: #7a1f1f; }
+    a { color: #7a1f1f; text-decoration: none; }
+    a:hover { text-decoration: underline; }
     .back { margin-bottom: 25px; }
-    #search { direction: rtl; }
+    .searchbox {
+      display: flex;
+      gap: 8px;
+      margin: 20px 0 25px;
+    }
+    input[type="search"] {
+      flex: 1;
+      font-size: 18px;
+      padding: 10px;
+      border: 1px solid #aaa;
+      direction: rtl;
+    }
+    button {
+      font-size: 16px;
+      padding: 10px 18px;
+      cursor: pointer;
+    }
+    .status {
+      margin: 12px 0;
+      color: #555;
+    }
+    .result {
+      border-bottom: 1px solid #ddd;
+      padding: 14px 0;
+    }
+    .result-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .snippet {
+      color: #444;
+      margin-top: 6px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -27,35 +61,135 @@
   </div>
 
   <h1>جستجو در آرشیو تغییر برای برابری</h1>
-  <p>عبارت مورد نظر را وارد کنید.</p>
 
-  <div id="search"></div>
+  <form id="searchForm" class="searchbox">
+    <input id="q" name="q" type="search" placeholder="عبارت مورد نظر را وارد کنید">
+    <button type="submit">جستجو</button>
+  </form>
+
+  <div id="status" class="status">در حال بارگذاری نمایه جستجو...</div>
+  <div id="results"></div>
 
   <script>
-    window.addEventListener("DOMContentLoaded", function () {
-      new PagefindUI({
-        element: "#search",
-        showSubResults: true,
-        showImages: false
-      });
+    let SEARCH_INDEX = null;
 
-      var params = new URLSearchParams(window.location.search);
-      var q = params.get("q");
+    function normalize(s) {
+      return (s || "")
+        .replace(/ي/g, "ی")
+        .replace(/ك/g, "ک")
+        .replace(/[\u064B-\u065F\u0670]/g, "")
+        .toLowerCase()
+        .trim();
+    }
 
-      if (q) {
-        var tryFill = function () {
-          var input = document.querySelector("#search input[type='search'], #search input[type='text']");
-          if (input) {
-            input.value = q;
-            input.dispatchEvent(new Event("input", { bubbles: true }));
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-          } else {
-            setTimeout(tryFill, 200);
-          }
-        };
-        setTimeout(tryFill, 500);
+    function tokenize(s) {
+      return normalize(s).match(/[a-z0-9\u0600-\u06FF]{2,}/g) || [];
+    }
+
+    function intersect(a, b) {
+      const bs = new Set(b);
+      return a.filter(x => bs.has(x));
+    }
+
+    function runSearch(query) {
+      const status = document.getElementById("status");
+      const results = document.getElementById("results");
+
+      if (!SEARCH_INDEX) {
+        status.textContent = "نمایه جستجو هنوز بارگذاری نشده است.";
+        return;
       }
+
+      const tokens = [...new Set(tokenize(query))];
+      results.innerHTML = "";
+
+      if (!tokens.length) {
+        status.textContent = "عبارت مورد نظر را وارد کنید.";
+        return;
+      }
+
+      let sets = tokens.map(t => SEARCH_INDEX.terms[t] || []);
+
+      let ids = sets[0] || [];
+      for (let i = 1; i < sets.length; i++) {
+        ids = intersect(ids, sets[i]);
+      }
+
+      if (ids.length === 0) {
+        const score = new Map();
+        for (const set of sets) {
+          for (const id of set) {
+            score.set(id, (score.get(id) || 0) + 1);
+          }
+        }
+        ids = [...score.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(x => x[0]);
+      }
+
+      ids = ids.slice(0, 50);
+
+      if (!ids.length) {
+        status.textContent = "نتیجه‌ای پیدا نشد.";
+        return;
+      }
+
+      status.textContent = ids.length + " نتیجه نمایش داده می‌شود.";
+
+      for (const id of ids) {
+        const d = SEARCH_INDEX.docs[id];
+        if (!d) continue;
+
+        const div = document.createElement("div");
+        div.className = "result";
+
+        const title = document.createElement("div");
+        title.className = "result-title";
+
+        const a = document.createElement("a");
+        a.href = d.u;
+        a.textContent = d.t || d.u;
+
+        title.appendChild(a);
+
+        const snip = document.createElement("div");
+        snip.className = "snippet";
+        snip.textContent = d.s || "";
+
+        div.appendChild(title);
+        div.appendChild(snip);
+        results.appendChild(div);
+      }
+    }
+
+    async function init() {
+      const status = document.getElementById("status");
+      try {
+        const res = await fetch("search-index.json");
+        SEARCH_INDEX = await res.json();
+        status.textContent = "عبارت مورد نظر را وارد کنید.";
+
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get("q") || "";
+        if (q) {
+          document.getElementById("q").value = q;
+          runSearch(q);
+        }
+      } catch (e) {
+        status.textContent = "خطا در بارگذاری نمایه جستجو.";
+      }
+    }
+
+    document.getElementById("searchForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const q = document.getElementById("q").value;
+      const url = new URL(window.location.href);
+      url.searchParams.set("q", q);
+      window.history.replaceState(null, "", url.toString());
+      runSearch(q);
     });
+
+    init();
   </script>
 </body>
 </html>

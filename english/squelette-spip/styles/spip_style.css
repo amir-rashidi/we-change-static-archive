@@ -83,7 +83,7 @@ img, .spip_logos { margin: 0; padding: 0; border: 0; }
 .spip_doc_descriptif { clear: both; font-size: 0.8em; }
 
 /* Images typographiques (via image_typo), URL a revoir... */
-.format_png { behavior: url(http://spip.local:8080/english/squelette-spip/styles/win_png.htc); }
+.format_png { behavior: url(/we-change-static-archive/english/squelette-spip/styles/win_png.htc); }
 
 /* Barre de raccourcis typographiques */
 table.spip_barre { width: 100%; }

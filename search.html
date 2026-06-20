@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>جستجو در آرشیو تغییر برای برابری</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="pagefind/pagefind-ui.css" rel="stylesheet">
+  <script src="pagefind/pagefind-ui.js"></script>
+  <style>
+    body {
+      font-family: Tahoma, Arial, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+      direction: rtl;
+      text-align: right;
+      line-height: 1.8;
+    }
+    a { color: #7a1f1f; }
+    .back { margin-bottom: 25px; }
+    #search { direction: rtl; }
+  </style>
+</head>
+<body>
+  <div class="back">
+    <a href="index.html">بازگشت به صفحه اصلی</a>
+  </div>
+
+  <h1>جستجو در آرشیو تغییر برای برابری</h1>
+  <p>عبارت مورد نظر را وارد کنید.</p>
+
+  <div id="search"></div>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", function () {
+      new PagefindUI({
+        element: "#search",
+        showSubResults: true,
+        showImages: false
+      });
+
+      var params = new URLSearchParams(window.location.search);
+      var q = params.get("q");
+
+      if (q) {
+        var tryFill = function () {
+          var input = document.querySelector("#search input[type='search'], #search input[type='text']");
+          if (input) {
+            input.value = q;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+          } else {
+            setTimeout(tryFill, 200);
+          }
+        };
+        setTimeout(tryFill, 500);
+      }
+    });
+  </script>
+</body>
+</html>

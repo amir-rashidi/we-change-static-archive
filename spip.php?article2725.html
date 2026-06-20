@@ -445,8 +445,7 @@ AC_FL_RunContent( 'codebase','http://download.macromedia.com/pub/shockwave/cabs/
 <br clear=all>
 	 
 	 <!---------search-------------------->
-<form action="https://www.google.com/search" method="get" target="_blank"
-      onsubmit="var q=this.querySelector('input[name=q]'); if(q.value.trim()){ q.value='site:amir-rashidi.github.io/we-change-static-archive ' + q.value.trim(); }">
+<form action="search.html" method="get" onsubmit="var q=this.querySelector('input[name=q]'); if(q && q.value.trim()){ var base=location.hostname.endsWith('github.io')?'/we-change-static-archive':''; window.location.href=base+'/search.html?q='+encodeURIComponent(q.value.trim()); } return false;">
   <input type="text" class="button" name="q" id="google-search" onfocus="this.value='';" />
   <input type="submit" value="جستجو" name="search" class="button" />
 </form>
